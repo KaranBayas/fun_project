@@ -1,0 +1,34 @@
+# Environment & Secrets
+.env
+
+# Python Virtual Environments
+.venv/
+.venv-aws-test/
+.venv-py313/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+
+# Testing & Development Artifacts (Excluded for direct AWS EC2 deployment)
+tests/
+pytest.ini
+requirements-dev.txt
+.pytest_cache/
+
+# Docker Files (Excluded for direct AWS EC2 Python deployment)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Encrypted Biometric Database
+face_recognition/face_data/face_database.json
+!face_recognition/face_data/.gitkeep
+
+# IDE & OS Files
+.DS_Store
+.idea/
+.vscode/
+*.log
+nohup.out
+:memory:.ses
