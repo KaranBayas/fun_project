@@ -27,10 +27,24 @@ def _resolve_face_database_path() -> Path:
     return local_path
 
 
+def _resolve_anomaly_model_path() -> Path:
+    env_val = os.getenv("ANOMALY_MODEL_PATH")
+    if env_val:
+        return Path(env_val)
+    repo_root = Path(__file__).resolve().parents[1]
+    artifact_path = repo_root / "ml" / "monitoring" / "artifacts" / "monitoring_isolation_forest.joblib"
+    return artifact_path
+
+
 class Settings(BaseSettings):
     app_name: str = "ai-services-api"
     app_version: str = "1.0.0"
     project_name: str = "Secure Digital Document Management System"
+
+    # Anomaly Detection
+    anomaly_model_path: Path = Field(
+        default_factory=_resolve_anomaly_model_path
+    )
 
     # Authentication
     ai_services_api_key: str | None = Field(
@@ -90,6 +104,45 @@ class Settings(BaseSettings):
             for origin in os.getenv("CORS_ORIGINS", "").split(",")
             if origin.strip()
         ]
+    )
+
+    # Twilio SMS Provider
+    twilio_account_sid: str | None = Field(
+        default_factory=lambda: os.getenv("TWILIO_ACCOUNT_SID")
+    )
+    twilio_auth_token: str | None = Field(
+        default_factory=lambda: os.getenv("TWILIO_AUTH_TOKEN")
+    )
+    twilio_from_number: str | None = Field(
+        default_factory=lambda: os.getenv("TWILIO_FROM_NUMBER")
+    )
+
+    # SMTP Email Provider
+    smtp_host: str | None = Field(
+        default_factory=lambda: os.getenv("SMTP_HOST")
+    )
+    smtp_port: int = Field(
+        default_factory=lambda: int(os.getenv("SMTP_PORT", "587"))
+    )
+    smtp_username: str | None = Field(
+        default_factory=lambda: os.getenv("SMTP_USERNAME")
+    )
+    smtp_password: str | None = Field(
+        default_factory=lambda: os.getenv("SMTP_PASSWORD")
+    )
+    smtp_from_email: str | None = Field(
+        default_factory=lambda: os.getenv("SMTP_FROM_EMAIL")
+    )
+    smtp_use_tls: bool = Field(
+        default_factory=lambda: os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+    )
+
+    # Twilio Voice / AI Voice Agent Settings
+    voice_agent_enabled: bool = Field(
+        default_factory=lambda: os.getenv("VOICE_AGENT_ENABLED", "false").lower() in ("true", "1", "yes")
+    )
+    voice_twiml_url: str | None = Field(
+        default_factory=lambda: os.getenv("VOICE_TWIML_URL")
     )
 
     model_config = SettingsConfigDict(

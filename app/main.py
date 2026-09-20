@@ -8,11 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
+from app.api.routes.agent import router as agent_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.face import router as face_router
+from app.api.routes.monitoring import router as monitoring_router
 from app.config import get_settings
 from app.db.qdrant_client import get_qdrant_client
 from app.models.schemas import HealthResponse, StandardErrorResponse
+from app.services.agent import get_calling_agent_service
+from app.services.monitoring import get_monitoring_service
 from app.services.search.embedding_service import EmbeddingService
 from app.services.search.text_extractor import DocumentTextExtractor
 from app.services.search.vector_service import QdrantVectorService
@@ -48,11 +52,15 @@ async def lifespan(app: FastAPI):
         logger.warning("Could not connect to Qdrant at startup: %s", exc)
 
     text_extractor = DocumentTextExtractor()
+    monitoring_service = get_monitoring_service()
+    calling_agent_service = get_calling_agent_service()
 
     # Store shared services in application state
     app.state.embedding_service = embedding_service
     app.state.vector_service = vector_service
     app.state.text_extractor = text_extractor
+    app.state.monitoring_service = monitoring_service
+    app.state.calling_agent_service = calling_agent_service
     app.state.settings = settings
 
     logger.info("AI Services API startup complete. InsightFace configured for lazy loading.")
@@ -166,6 +174,8 @@ async def health() -> HealthResponse:
 # Register Protected Business Routers
 app.include_router(face_router)
 app.include_router(documents_router)
+app.include_router(monitoring_router)
+app.include_router(agent_router)
 
 
 # Custom OpenAPI schema to ensure X-API-Key security scheme is properly displayed in Swagger
@@ -187,9 +197,9 @@ def custom_openapi():
             "description": "Enter your AI_SERVICES_API_KEY in this header",
         }
     }
-    # Apply security requirement to all endpoints except /health
+    # Apply security requirement to all endpoints except /health, /api/v1/agent/voice/status, and /api/v1/agent/voice/twiml (secured via Twilio signature)
     for path, path_item in openapi_schema.get("paths", {}).items():
-        if path == "/health":
+        if path in ("/health", "/api/v1/agent/voice/status", "/api/v1/agent/voice/twiml"):
             continue
         for method in path_item:
             if method.lower() in {"get", "post", "put", "delete", "patch"}:
